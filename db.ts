@@ -1,7 +1,7 @@
 
-import { Client, Appointment, Sale, SavedRoute, User } from './types';
+import { Client, Appointment, Sale, SavedRoute, User } from './types.ts';
 
-const DB_NAME = 'SalesMasterDB_v4';
+const DB_NAME = 'SalesMasterDB_v5'; // Versão 5 para limpar cache de produção
 const DB_VERSION = 1;
 
 class LocalDatabase {
@@ -13,7 +13,6 @@ class LocalDatabase {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        // Tabelas independentes
         const stores = ['clients', 'appointments', 'sales', 'routes', 'users'];
         stores.forEach(store => {
           if (!db.objectStoreNames.contains(store)) {

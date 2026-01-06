@@ -87,20 +87,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user, clients, appointments, sale
     e.preventDefault();
     e.stopPropagation();
     
-    if (!saleId) {
-      console.warn("ID da venda não encontrado para exclusão.");
-      return;
-    }
+    if (!saleId) return;
 
-    if (window.confirm('Atenção: Você deseja realmente EXCLUIR este registro de venda permanentemente?')) {
+    if (window.confirm('Deseja excluir permanentemente este registro de positivação?')) {
       try {
-        console.log("Deletando venda ID:", saleId);
         await dbService.delete('sales', saleId);
-        // Chamada imediata para atualizar o estado do componente pai
+        // Se estivermos em um modal e a lista ficar vazia ou o item sumir, 
+        // o onUpdate cuidará de atualizar os dados.
         onUpdate();
+        
+        // Pequeno truque: se a venda excluída era a única do modal, fecha o modal
+        if (activeModal === 'vendas' && weeklySales.length <= 1) {
+          setActiveModal(null);
+        }
       } catch (err) {
-        console.error("Erro ao deletar venda:", err);
-        alert("Ocorreu um erro ao tentar excluir o registro do banco de dados.");
+        console.error("Erro ao deletar:", err);
+        alert("Erro técnico ao excluir. Tente novamente.");
       }
     }
   };
@@ -252,20 +254,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, clients, appointments, sale
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setSortOrder('name')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${sortOrder === 'name' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
-                >
-                  Ordem A-Z
-                </button>
-                <button 
-                  onClick={() => setSortOrder('code')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${sortOrder === 'code' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
-                >
-                  Por Código
-                </button>
-              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-3 bg-gray-50/30">
@@ -286,14 +274,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, clients, appointments, sale
                          <button 
                           onClick={() => openEditSale(item)}
                           className="p-2 text-blue-400 hover:bg-blue-50 rounded-xl transition-all"
-                          title="Editar"
                         >
                           <i className="fas fa-pencil-alt"></i>
                         </button>
                         <button 
                           onClick={(e) => handleDeleteSale(e, item.id)}
                           className="p-2 text-red-400 hover:bg-red-50 rounded-xl transition-all"
-                          title="Excluir Registro"
                         >
                           <i className="fas fa-trash-alt"></i>
                         </button>
@@ -303,8 +289,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, clients, appointments, sale
                         onClick={() => handleToggleVisit(item)}
                         className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
                           item.lastVisitDate === todayStr 
-                            ? 'bg-green-100 text-green-600 hover:bg-green-200' 
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                            ? 'bg-green-100 text-green-600' 
+                            : 'bg-blue-600 text-white'
                         }`}
                       >
                         <i className={`fas ${item.lastVisitDate === todayStr ? 'fa-check-double' : 'fa-check'}`}></i>
