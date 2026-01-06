@@ -1,0 +1,7 @@
+{
+  "name": "SalesMaster Pro - Gestão de Vendas",
+  "description": "Uma ferramenta completa para representantes comerciais com CRM, agenda, rotas inteligentes, B.I  e assistente de IA.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
