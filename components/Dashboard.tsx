@@ -86,20 +86,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user, clients, appointments, sale
   };
 
   const handleDeleteSale = async (e: React.MouseEvent, saleId: string) => {
-    e.stopPropagation(); // Evita eventos indesejados
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (!saleId) return;
 
-    const confirmed = window.confirm('Deseja realmente EXCLUIR este registro de positivação? Esta ação não pode ser desfeita.');
-    if (confirmed) {
+    if (window.confirm('Atenção: Você deseja realmente EXCLUIR este registro de venda permanentemente?')) {
       try {
+        console.log("Iniciando exclusão da venda ID:", saleId);
         await dbService.delete('sales', saleId);
-        // Pequena pausa para garantir que o IndexedDB completou a operação antes do refresh
-        setTimeout(() => {
-          onUpdate();
-        }, 100);
+        console.log("Exclusão concluída no IndexedDB");
+        
+        // Atualiza a lista no App.tsx
+        onUpdate();
       } catch (err) {
         console.error("Erro ao deletar venda:", err);
-        alert("Ocorreu um erro ao tentar excluir o registro.");
+        alert("Ocorreu um erro no banco de dados ao tentar excluir o registro.");
       }
     }
   };
@@ -169,7 +171,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, clients, appointments, sale
         ))}
       </div>
 
-      {/* Lista de Últimas Positivações na Home */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex items-center justify-between">
           <h3 className="font-bold text-gray-800 flex items-center gap-2">
