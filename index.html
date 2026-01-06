@@ -6,50 +6,77 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SalesMaster Pro</title>
     
-    <!-- Tailwind CSS (CDN para Protótipo) -->
+    <!-- Tailwind CSS (Aviso de produção pode ser ignorado, funciona perfeitamente para este uso) -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Babel Standalone: Transpila TSX no Navegador -->
+    <!-- Babel Standalone: Essencial para rodar TSX no navegador -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-      body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+      body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; overflow-x: hidden; }
       
-      /* Tela de Carregamento Inicial */
       #app-loader {
         position: fixed;
         inset: 0;
-        background: #1e40af; /* blue-800 */
+        background: #1e40af;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         color: white;
         z-index: 9999;
-        transition: opacity 0.5s ease;
       }
 
       .spinner {
-        width: 50px;
-        height: 50px;
-        border: 4px solid rgba(255,255,255,0.1);
-        border-top: 4px solid white;
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255,255,255,0.2);
+        border-top: 3px solid white;
         border-radius: 50%;
         animation: spin 1s linear infinite;
-        margin-bottom: 20px;
       }
 
       @keyframes spin { to { transform: rotate(360deg); } }
-      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-      @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-      
-      .animate-fadeIn { animation: fadeIn 0.4s ease-out; }
-      .animate-slideUp { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+
+      /* Alerta de erro para o usuário caso o JS falhe */
+      #error-display {
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        background: #fee2e2;
+        border: 1px solid #ef4444;
+        color: #b91c1c;
+        padding: 15px;
+        border-radius: 12px;
+        z-index: 10000;
+        font-size: 12px;
+      }
     </style>
+
+    <script>
+      // POLYFILL ESSENCIAL: Impede que o app quebre ao procurar process.env no navegador
+      window.process = { 
+        env: { 
+          API_KEY: "" // Será injetada automaticamente se disponível
+        } 
+      };
+
+      // Captura de erros globais para debugar no celular/produção
+      window.onerror = function(msg, url, line) {
+        const display = document.getElementById('error-display');
+        if (display) {
+          display.style.display = 'block';
+          display.innerHTML = `<strong>Erro de Carregamento:</strong> ${msg} <br> <small>Linha: ${line} - ${url}</small>`;
+        }
+        return false;
+      };
+    </script>
 
     <script type="importmap">
 {
@@ -65,38 +92,35 @@
 </script>
 </head>
 <body class="bg-gray-50 text-gray-900">
-    <!-- Loader Visível enquanto o React não monta -->
     <div id="app-loader">
         <div class="spinner"></div>
-        <h1 style="font-size: 1.5rem; font-weight: 800; letter-spacing: -0.025em;">SalesMaster Pro</h1>
-        <p style="font-size: 0.875rem; opacity: 0.8; margin-top: 8px;">Carregando ambiente de vendas...</p>
+        <p style="margin-top: 20px; font-weight: 600;">Carregando SalesMaster...</p>
     </div>
 
+    <div id="error-display"></div>
     <div id="root"></div>
     
-    <!-- 
-      Configuração Babel:
-      - data-presets: Essencial para entender React e TypeScript
-      - data-type=module: Permite o uso de 'import' dentro do arquivo
-    -->
     <script 
       type="text/babel" 
       data-presets="react,typescript" 
       data-type="module" 
-      src="./index.tsx"
+      src="index.tsx"
     ></script>
 
     <script>
-      // Remove o loader assim que o React começar a injetar conteúdo
-      const observer = new MutationObserver(() => {
-        const loader = document.getElementById('app-loader');
-        if (loader && document.getElementById('root').children.length > 0) {
-          loader.style.opacity = '0';
-          setTimeout(() => loader.remove(), 500);
-          observer.disconnect();
+      // Gerencia a visibilidade do loader
+      const checkLoaded = setInterval(() => {
+        if (document.getElementById('root').children.length > 0) {
+          document.getElementById('app-loader').style.display = 'none';
+          clearInterval(checkLoaded);
         }
-      });
-      observer.observe(document.getElementById('root'), { childList: true });
+      }, 500);
+      
+      // Timeout de segurança para o loader
+      setTimeout(() => {
+        const loader = document.getElementById('app-loader');
+        if (loader) loader.style.display = 'none';
+      }, 8000);
     </script>
 </body>
 </html>
