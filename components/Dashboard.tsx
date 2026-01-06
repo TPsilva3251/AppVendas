@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { Client, Appointment, Sale, AppTab, User } from '../types';
-import { dbService } from '../db';
+import { Client, Appointment, Sale, AppTab, User } from '../types.ts';
+import { dbService } from '../db.ts';
 
 interface DashboardProps {
   user: User;
@@ -27,7 +27,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, clients, appointments, sale
   const currentDayIndex = Math.min(Math.max(new Date().getDay() - 1, 0), 4);
   const todayRouteName = DAYS_OF_WEEK[currentDayIndex];
 
-  // Filtro de vendas da última semana (7 dias)
   const weeklySales = sales.filter(s => {
     const saleDate = new Date(s.date);
     const oneWeekAgo = new Date();
@@ -35,7 +34,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, clients, appointments, sale
     return saleDate >= oneWeekAgo;
   }).sort((a, b) => b.date.localeCompare(a.date));
 
-  // Soma total das vendas da semana
   const weeklyTotal = weeklySales.reduce((acc, sale) => acc + sale.amount, 0);
 
   const visitsToday = clients.filter(c => c.lastVisitDate === todayStr);
@@ -89,19 +87,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user, clients, appointments, sale
     e.preventDefault();
     e.stopPropagation();
     
-    if (!saleId) return;
+    if (!saleId) {
+      console.warn("ID da venda não encontrado para exclusão.");
+      return;
+    }
 
     if (window.confirm('Atenção: Você deseja realmente EXCLUIR este registro de venda permanentemente?')) {
       try {
-        console.log("Iniciando exclusão da venda ID:", saleId);
+        console.log("Deletando venda ID:", saleId);
         await dbService.delete('sales', saleId);
-        console.log("Exclusão concluída no IndexedDB");
-        
-        // Atualiza a lista no App.tsx
+        // Chamada imediata para atualizar o estado do componente pai
         onUpdate();
       } catch (err) {
         console.error("Erro ao deletar venda:", err);
-        alert("Ocorreu um erro no banco de dados ao tentar excluir o registro.");
+        alert("Ocorreu um erro ao tentar excluir o registro do banco de dados.");
       }
     }
   };

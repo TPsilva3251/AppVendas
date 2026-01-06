@@ -1,17 +1,17 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { dbService } from './db';
-import { aiAssistant } from './geminiService';
-import { Client, Appointment, Sale, AppTab, SavedRoute, User } from './types';
+import { dbService } from './db.ts';
+import { aiAssistant } from './geminiService.ts';
+import { Client, Appointment, Sale, AppTab, SavedRoute, User } from './types.ts';
 
 // Components
-import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
-import ClientManager from './components/ClientManager';
-import Agenda from './components/Agenda';
-import RoutePlanner from './components/RoutePlanner';
-import AIChat from './components/AIChat';
-import Login from './components/Login';
+import Sidebar from './components/Sidebar.tsx';
+import Dashboard from './components/Dashboard.tsx';
+import ClientManager from './components/ClientManager.tsx';
+import Agenda from './components/Agenda.tsx';
+import RoutePlanner from './components/RoutePlanner.tsx';
+import AIChat from './components/AIChat.tsx';
+import Login from './components/Login.tsx';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(() => {
@@ -40,14 +40,18 @@ const App: React.FC = () => {
   }, [user]);
 
   const refreshData = useCallback(async (userId: string) => {
-    const loadedClients = await dbService.getAllForUser<Client>('clients', userId);
-    const loadedApps = await dbService.getAllForUser<Appointment>('appointments', userId);
-    const loadedSales = await dbService.getAllForUser<Sale>('sales', userId);
-    const loadedRoutes = await dbService.getAllForUser<SavedRoute>('routes', userId);
-    setClients(loadedClients);
-    setAppointments(loadedApps);
-    setSales(loadedSales);
-    setSavedRoutes(loadedRoutes);
+    try {
+      const loadedClients = await dbService.getAllForUser<Client>('clients', userId);
+      const loadedApps = await dbService.getAllForUser<Appointment>('appointments', userId);
+      const loadedSales = await dbService.getAllForUser<Sale>('sales', userId);
+      const loadedRoutes = await dbService.getAllForUser<SavedRoute>('routes', userId);
+      setClients(loadedClients);
+      setAppointments(loadedApps);
+      setSales(loadedSales);
+      setSavedRoutes(loadedRoutes);
+    } catch (err) {
+      console.error("Erro ao atualizar dados:", err);
+    }
   }, []);
 
   const handleLogin = (loggedUser: User) => {
