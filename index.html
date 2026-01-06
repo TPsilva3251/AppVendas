@@ -44,7 +44,6 @@
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
       
-      /* Scrollbar Customizada */
       ::-webkit-scrollbar { width: 6px; }
       ::-webkit-scrollbar-track { background: #f1f1f1; }
       ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -54,11 +53,10 @@
     <script type="importmap">
 {
   "imports": {
-    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom": "https://esm.sh/react-dom@^19.2.3",
-    "react-dom/client": "https://esm.sh/react-dom@^19.2.3/client",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@1.34.0",
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
     "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
@@ -73,16 +71,15 @@
 
     <div id="root"></div>
 
-    <!-- TODO O CÓDIGO DA APLICAÇÃO AQUI -->
-    <script type="text/babel" data-presets="react,typescript">
+    <!-- O segredo aqui é o data-type="module" para permitir imports -->
+    <script type="text/babel" data-presets="react,typescript" data-type="module">
       import React, { useState, useEffect, useCallback, useRef } from 'react';
       import ReactDOM from 'react-dom/client';
       import { GoogleGenAI } from "@google/genai";
 
-      // --- 1. CONFIGURAÇÕES E BANCO DE DADOS ---
-      const DB_NAME = 'SalesMasterDB_Production';
+      // --- 1. BANCO DE DADOS LOCAL ---
+      const DB_NAME = 'SalesMasterDB_vFinal';
       const DB_VERSION = 1;
-      const DAYS_OF_WEEK = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
 
       class LocalDatabase {
         db = null;
@@ -91,7 +88,7 @@
             const request = indexedDB.open(DB_NAME, DB_VERSION);
             request.onupgradeneeded = (e) => {
               const db = e.target.result;
-              ['clients', 'appointments', 'sales', 'routes', 'users'].forEach(store => {
+              ['clients', 'appointments', 'sales', 'users'].forEach(store => {
                 if (!db.objectStoreNames.contains(store)) {
                   const os = db.createObjectStore(store, { keyPath: 'id' });
                   if (store !== 'users') os.createIndex('userId', 'userId', { unique: false });
@@ -99,7 +96,7 @@
               });
             };
             request.onsuccess = (e) => { this.db = e.target.result; resolve(); };
-            request.onerror = () => reject('Erro ao acessar IndexedDB');
+            request.onerror = () => reject('Erro IndexedDB');
           });
         }
         async getAllForUser(store, userId) {
@@ -124,91 +121,39 @@
       }
       const dbService = new LocalDatabase();
 
-      // --- 2. SERVIÇO DE IA ---
-      const aiAssistant = {
-        async chat(msg, ctx) {
-          const apiKey = window.process?.env?.API_KEY;
-          if (!apiKey) return "A função de IA requer uma chave de API válida.";
-          try {
-            const ai = new GoogleGenAI({ apiKey });
-            const response = await ai.models.generateContent({
-              model: 'gemini-3-flash-preview',
-              contents: `Você é um consultor de vendas. Contexto: O usuário tem ${ctx.clients.length} clientes. Pergunta: ${msg}`,
-            });
-            return response.text || "Sem resposta da IA.";
-          } catch (e) { return "Erro na comunicação com a Inteligência Artificial."; }
-        }
-      };
-
-      // --- 3. COMPONENTES ---
+      // --- 2. COMPONENTES ---
 
       const Login = ({ onLogin }) => {
         const [u, setU] = useState('');
         const [p, setP] = useState('');
         const USERS = [
-          { id: '1', username: 'admin', name: 'Admin', password: '123' },
+          { id: '1', username: 'admin', name: 'Administrador', password: '123' },
           { id: '4', username: 'Thiago', name: 'Thiago', password: 'Dudinh@2015' }
         ];
         const handle = (e) => {
           e.preventDefault();
           const user = USERS.find(x => x.username === u && x.password === p);
-          if (user) onLogin(user); else alert('Usuário ou senha incorretos!');
+          if (user) onLogin(user); else alert('Usuário ou senha inválidos!');
         };
         return (
-          <div className="min-h-screen bg-blue-700 flex items-center justify-center p-6">
-            <div className="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-md space-y-8 animate-slideUp">
-              <div className="text-center">
-                <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-4">
-                  <i className="fas fa-briefcase text-3xl"></i>
-                </div>
-                <h1 className="text-3xl font-black text-gray-800">SalesMaster</h1>
-                <p className="text-gray-400 font-medium">Faça login para continuar</p>
+          <div className="min-h-screen bg-blue-800 flex items-center justify-center p-6">
+            <div className="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-md animate-slideUp">
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-black text-blue-600">SalesMaster</h1>
+                <p className="text-gray-400">Entre com suas credenciais</p>
               </div>
               <form onSubmit={handle} className="space-y-4">
-                <input type="text" placeholder="Usuário" className="w-full p-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 outline-none" onChange={e=>setU(e.target.value)} />
-                <input type="password" placeholder="Senha" className="w-full p-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 outline-none" onChange={e=>setP(e.target.value)} />
-                <button className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-blue-700 transition-all active:scale-95">Acessar Sistema</button>
+                <input type="text" placeholder="Usuário" className="w-full p-4 bg-gray-50 rounded-2xl border outline-none focus:ring-2 focus:ring-blue-500" onChange={e=>setU(e.target.value)} />
+                <input type="password" placeholder="Senha" className="w-full p-4 bg-gray-50 rounded-2xl border outline-none focus:ring-2 focus:ring-blue-500" onChange={e=>setP(e.target.value)} />
+                <button className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-blue-700 transition-all">Entrar</button>
               </form>
             </div>
           </div>
         );
       };
 
-      const Sidebar = ({ user, active, setTab, onLogout }) => {
-        const menus = [
-          { id: 'dashboard', label: 'Painel', icon: 'fa-chart-pie' },
-          { id: 'clients', label: 'Clientes', icon: 'fa-users' },
-          { id: 'agenda', label: 'Agenda', icon: 'fa-calendar-alt' },
-          { id: 'ai', label: 'IA Copilot', icon: 'fa-robot' }
-        ];
-        return (
-          <nav className="bg-white border-r w-full md:w-64 flex md:flex-col sticky bottom-0 md:relative z-20">
-            <div className="hidden md:flex p-8 border-b items-center gap-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white"><i className="fas fa-bolt"></i></div>
-              <h1 className="font-black text-xl tracking-tight">SalesMaster</h1>
-            </div>
-            <div className="flex md:flex-col flex-1 p-2 md:p-4 gap-1 overflow-x-auto justify-around md:justify-start">
-              {menus.map(m => (
-                <button key={m.id} onClick={()=>setTab(m.id)} className={`flex flex-col md:flex-row items-center gap-2 md:gap-4 p-3 md:px-6 md:py-4 rounded-2xl transition-all ${active === m.id ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-400 hover:bg-gray-50'}`}>
-                  <i className={`fas ${m.icon} text-xl`}></i>
-                  <span className="text-[10px] md:text-sm">{m.label}</span>
-                </button>
-              ))}
-            </div>
-            <div className="p-4 border-t hidden md:block">
-               <div className="flex items-center gap-3 mb-4 px-2">
-                 <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600">{user.name[0]}</div>
-                 <div className="overflow-hidden"><p className="text-sm font-bold truncate">{user.name}</p></div>
-               </div>
-               <button onClick={onLogout} className="w-full text-left p-2 text-red-500 text-sm font-bold hover:bg-red-50 rounded-xl transition-all">Sair</button>
-            </div>
-          </nav>
-        );
-      };
-
       const Dashboard = ({ user, clients, sales, onUpdate }) => {
         const [modal, setModal] = useState(false);
-        const today = new Date().toISOString().split('T')[0];
         const totalVendas = sales.reduce((acc, s) => acc + s.amount, 0);
 
         const handleSave = async (e) => {
@@ -220,86 +165,55 @@
             clientId: f.get('clientId'),
             clientName: clients.find(c => c.id === f.get('clientId'))?.name || 'Cliente',
             amount: parseFloat(f.get('amount')),
-            date: today
+            date: new Date().toISOString().split('T')[0]
           };
           await dbService.put('sales', sale);
           setModal(false); onUpdate();
         };
 
-        const removeSale = async (id) => {
-          if (confirm('Excluir este registro?')) {
-            await dbService.delete('sales', id);
-            onUpdate();
-          }
-        };
-
         return (
-          <div className="space-y-8 animate-fadeIn">
-            <header className="flex justify-between items-center">
-              <div>
-                <h2 className="text-3xl font-black text-gray-800">Início</h2>
-                <p className="text-gray-400">Visão geral do seu trabalho hoje.</p>
-              </div>
-              <button onClick={()=>setModal(true)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-blue-100">Nova Venda</button>
-            </header>
+          <div className="space-y-6 animate-fadeIn">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-black">Olá, {user.name}!</h2>
+              <button onClick={()=>setModal(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold">Nova Venda</button>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white p-8 rounded-[2rem] border shadow-sm">
-                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Carteira</p>
-                <p className="text-4xl font-black text-gray-800">{clients.length} <span className="text-sm text-gray-400 font-medium">Clientes</span></p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white p-6 rounded-3xl border">
+                <p className="text-xs font-bold text-gray-400 uppercase">Faturamento</p>
+                <p className="text-3xl font-black text-blue-600">R$ {totalVendas.toLocaleString('pt-BR')}</p>
               </div>
-              <div className="bg-white p-8 rounded-[2rem] border shadow-sm">
-                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Faturamento Semana</p>
-                <p className="text-4xl font-black text-blue-600">R$ {totalVendas.toLocaleString('pt-BR')}</p>
-              </div>
-              <div className="bg-white p-8 rounded-[2rem] border shadow-sm">
-                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Positividade</p>
-                <p className="text-4xl font-black text-green-600">{sales.length} <span className="text-sm text-gray-400 font-medium">Vendas</span></p>
+              <div className="bg-white p-6 rounded-3xl border">
+                <p className="text-xs font-bold text-gray-400 uppercase">Clientes</p>
+                <p className="text-3xl font-black">{clients.length}</p>
               </div>
             </div>
 
-            <div className="bg-white rounded-[2rem] border shadow-sm overflow-hidden">
-               <div className="p-8 border-b font-black text-gray-800 flex justify-between items-center">
-                 <span>Últimas Atividades</span>
-                 <i className="fas fa-history text-gray-300"></i>
-               </div>
-               <div className="overflow-x-auto">
-                 <table className="w-full text-left">
-                   <thead className="bg-gray-50 text-[10px] uppercase font-black text-gray-400">
-                     <tr><th className="px-8 py-4">Data</th><th className="px-8 py-4">Cliente</th><th className="px-8 py-4">Valor</th><th className="px-8 py-4 text-right">Ações</th></tr>
-                   </thead>
-                   <tbody className="divide-y">
-                     {sales.map(s => (
-                       <tr key={s.id} className="hover:bg-gray-50 transition-all">
-                         <td className="px-8 py-6 text-sm text-gray-500">{s.date.split('-').reverse().join('/')}</td>
-                         <td className="px-8 py-6 font-bold text-gray-800">{s.clientName}</td>
-                         <td className="px-8 py-6 font-black text-blue-600">R$ {s.amount.toFixed(2)}</td>
-                         <td className="px-8 py-6 text-right">
-                           <button onClick={()=>removeSale(s.id)} className="text-red-300 hover:text-red-500 p-2"><i className="fas fa-trash"></i></button>
-                         </td>
-                       </tr>
-                     ))}
-                     {sales.length === 0 && <tr><td colSpan={4} className="px-8 py-20 text-center text-gray-400 italic">Nenhuma venda registrada nos últimos 7 dias.</td></tr>}
-                   </tbody>
-                 </table>
-               </div>
+            <div className="bg-white rounded-3xl border overflow-hidden">
+              <div className="p-6 border-b font-bold">Últimas Vendas</div>
+              <table className="w-full text-left">
+                <tbody>
+                  {sales.map(s => (
+                    <tr key={s.id} className="border-b last:border-0 hover:bg-gray-50">
+                      <td className="p-4 text-sm font-bold">{s.clientName}</td>
+                      <td className="p-4 text-blue-600 font-black">R$ {s.amount.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             {modal && (
-              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-                <form onSubmit={handleSave} className="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-md space-y-6 animate-slideUp">
-                  <h3 className="text-2xl font-black text-gray-800">Registrar Venda</h3>
-                  <div className="space-y-4">
-                    <select name="clientId" required className="w-full p-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-200 outline-none">
-                      <option value="">Selecione o Cliente</option>
-                      {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                    <input name="amount" type="number" step="0.01" placeholder="Valor do Pedido (R$)" required className="w-full p-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-200 outline-none" />
-                  </div>
-                  <div className="flex gap-4 pt-4">
-                    <button type="submit" className="flex-1 bg-blue-600 text-white font-bold py-4 rounded-2xl">Salvar</button>
-                    <button type="button" onClick={()=>setModal(false)} className="flex-1 bg-gray-100 py-4 rounded-2xl">Voltar</button>
-                  </div>
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                <form onSubmit={handleSave} className="bg-white p-8 rounded-3xl w-full max-w-md space-y-4">
+                  <h3 className="text-xl font-bold">Lançar Venda</h3>
+                  <select name="clientId" required className="w-full p-4 bg-gray-50 border rounded-xl">
+                    <option value="">Selecione o Cliente</option>
+                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <input name="amount" type="number" step="0.01" placeholder="Valor" required className="w-full p-4 bg-gray-50 border rounded-xl" />
+                  <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold">Salvar</button>
+                  <button type="button" onClick={()=>setModal(false)} className="w-full text-gray-400 font-bold">Cancelar</button>
                 </form>
               </div>
             )}
@@ -307,30 +221,31 @@
         );
       };
 
-      // --- 4. APP PRINCIPAL ---
+      // --- 3. APP PRINCIPAL ---
       const App = () => {
         const [user, setUser] = useState(() => {
           const s = sessionStorage.getItem('sm_session');
           return s ? JSON.parse(s) : null;
         });
-        const [tab, setTab] = useState('dashboard');
-        const [data, setData] = useState({ clients: [], sales: [], apps: [] });
+        const [data, setData] = useState({ clients: [], sales: [] });
         const [ready, setReady] = useState(false);
 
         const refresh = useCallback(async () => {
           if (!user) return;
           const c = await dbService.getAllForUser('clients', user.id);
           const s = await dbService.getAllForUser('sales', user.id);
-          const a = await dbService.getAllForUser('appointments', user.id);
-          setData({ clients: c, sales: s, apps: a });
+          setData({ clients: c, sales: s });
         }, [user]);
 
         useEffect(() => {
           dbService.init().then(() => {
             refresh();
             setReady(true);
-            const l = document.getElementById('app-loader');
-            if (l) { l.style.opacity = '0'; setTimeout(()=>l.remove(), 500); }
+            const loader = document.getElementById('app-loader');
+            if (loader) {
+              loader.style.opacity = '0';
+              setTimeout(() => loader.remove(), 500);
+            }
           });
         }, [refresh]);
 
@@ -338,34 +253,16 @@
         if (!ready) return null;
 
         return (
-          <div className="flex flex-col md:flex-row min-h-screen">
-            <Sidebar user={user} active={tab} setTab={setTab} onLogout={()=>{sessionStorage.clear(); setUser(null);}} />
-            <main className="flex-1 p-6 md:p-12 overflow-y-auto pb-24 md:pb-12">
-              <div className="max-w-6xl mx-auto">
-                {tab === 'dashboard' && <Dashboard user={user} clients={data.clients} sales={data.sales} onUpdate={refresh} />}
-                {tab === 'clients' && (
-                  <div className="bg-white p-20 rounded-[3rem] border shadow-sm text-center">
-                     <i className="fas fa-tools text-6xl text-gray-200 mb-6"></i>
-                     <h2 className="text-2xl font-black text-gray-800">Gestão de Clientes</h2>
-                     <p className="text-gray-400 mt-2">Módulo em desenvolvimento para sua região.</p>
-                  </div>
-                )}
-                {tab === 'agenda' && (
-                  <div className="bg-white p-20 rounded-[3rem] border shadow-sm text-center">
-                     <i className="fas fa-calendar-check text-6xl text-gray-200 mb-6"></i>
-                     <h2 className="text-2xl font-black text-gray-800">Minha Agenda</h2>
-                     <p className="text-gray-400 mt-2">Em breve: Agendamento sincronizado com Google Calendar.</p>
-                  </div>
-                )}
-                {tab === 'ai' && (
-                  <div className="bg-white p-20 rounded-[3rem] border shadow-sm text-center">
-                     <i className="fas fa-brain text-6xl text-gray-200 mb-6"></i>
-                     <h2 className="text-2xl font-black text-gray-800">IA Sales Copilot</h2>
-                     <p className="text-gray-400 mt-2">Análise preditiva de vendas chegando na próxima versão.</p>
-                  </div>
-                )}
-              </div>
-            </main>
+          <div className="min-h-screen bg-gray-50 p-6 md:p-12">
+            <div className="max-w-4xl mx-auto">
+              <Dashboard user={user} clients={data.clients} sales={data.sales} onUpdate={refresh} />
+              <button 
+                onClick={() => { sessionStorage.clear(); location.reload(); }}
+                className="mt-8 text-gray-400 text-sm font-bold flex items-center gap-2"
+              >
+                <i className="fas fa-sign-out-alt"></i> Sair do Sistema
+              </button>
+            </div>
           </div>
         );
       };
